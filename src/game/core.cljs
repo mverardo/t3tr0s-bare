@@ -2,6 +2,8 @@
   (:require-macros
     [cljs.core.async.macros :refer [go go-loop alt!]])
   (:require
+    [goog.string :as gstring]
+    [goog.string.format]
     [cljs.reader :refer [read-string]]
     [game.board :refer [piece-fits?
                         rotate-piece
@@ -53,6 +55,7 @@
   (reset! state {:next-piece  nil
                  :piece       nil
                  :position    nil
+                 :board-size  {:n-rows n-rows :n-cols n-cols}
                  :board       empty-board
                  :metrics     empty-metrics
 
@@ -195,7 +198,7 @@
   (.html ($ "#score") (str "Score: " (:score @state)))
   (.html ($ "#level") (str "Level: " (:level @state)))
   (.html ($ "#lines") (str "Lines: " (:total-lines @state)))
-  (.html ($ "#board-density") (str "Board Density: " (-> @state :metrics :board-density))))
+  (.html ($ "#board-density") (str "Board Density: " (->> @state :metrics :board-density (gstring/format "%.2f")))))
 
 
 (defn update-points!
@@ -392,7 +395,11 @@
 
 (def metrics-chan (chan 1 (dedupe)))
 
-(def collect-density (constantly {:board-density 1.123M}))
+(defn collect-density [state]
+  (let [row-filled-cells   (fn [row] (->> row (filter #(not= 0 %)) count))
+        board-filled-cells (->> state :board (map row-filled-cells) (reduce +))
+        total-cells        (* (-> state :board-size :n-cols) (-> state :board-size :n-rows))]
+    {:board-density (/ board-filled-cells total-cells)}))
 
 (defn collect-metrics! [out-chan]
   (go-loop []
