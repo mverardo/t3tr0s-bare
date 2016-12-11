@@ -159,7 +159,10 @@
   (vec
     (for [x (range n-cols)]
       (str (name (nth (keys pieces) (rand-int 7))) 0))))
+
 (def empty-board (vec (repeat n-rows empty-row)))
+
+(def empty-metrics {:board-density 0.0M})
 
 ; The starting position of all pieces.
 (def start-position [4 2])

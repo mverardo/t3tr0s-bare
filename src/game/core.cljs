@@ -7,6 +7,7 @@
                         rotate-piece
                         start-position
                         empty-board
+                        empty-metrics
                         get-drop-pos
                         get-rand-piece
                         get-rand-diff-piece
@@ -53,6 +54,7 @@
                  :piece nil
                  :position nil
                  :board empty-board
+                 :metrics empty-metrics
 
                  :score 0
                  :level 0
@@ -192,7 +194,8 @@
   []
   (.html ($ "#score") (str "Score: " (:score @state)))
   (.html ($ "#level") (str "Level: " (:level @state)))
-  (.html ($ "#lines") (str "Lines: " (:total-lines @state))))
+  (.html ($ "#lines") (str "Lines: " (:total-lines @state)))
+  (.html ($ "#board-density") (str "Board Density: " (-> @state :metrics :board-density))))
 
 
 (defn update-points!

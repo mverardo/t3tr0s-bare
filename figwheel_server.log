@@ -1,0 +1,38 @@
+Figwheel: focusing on build-ids (dev)
+[0mCompiling "resources/public/game.js" from ["src"]...
+[32mSuccessfully compiled "resources/public/game.js" in 0.083 seconds.[0m
+notifying browser that file changed:  resources/public/out/goog/deps.js
+notifying browser that file changed:  resources/public/out/cljs_deps.js
+notifying browser that file changed:  /game/core.js
+notifying browser that file changed:  /game/paint.js
+notifying browser that file changed:  /game/rules.js
+notifying browser that file changed:  /game/board.js
+[0mCompiling "resources/public/game.js" from ["src"]...
+[32mSuccessfully compiled "resources/public/game.js" in 0.488 seconds.[0m
+notifying browser that file changed:  /game/core.js
+[0mCompiling "resources/public/game.js" from ["src"]...
+[32mSuccessfully compiled "resources/public/game.js" in 0.551 seconds.[0m
+notifying browser that file changed:  /game/core.js
+[0mCompiling "resources/public/game.js" from ["src"]...
+[31mCompiling "resources/public/game.js" failed.[0m
+ERROR: Map literal must contain an even number of forms on file /home/mverardo/dev/t3tr0s-bare/src/game/core.cljs, line 63, column 35
+[0mCompiling "resources/public/game.js" from ["src"]...
+[32mSuccessfully compiled "resources/public/game.js" in 0.184 seconds.[0m
+notifying browser that file changed:  /game/board.js
+[0mCompiling "resources/public/game.js" from ["src"]...
+WARNING: Use of undeclared Var game.core/empty-metrics at line 56 src/game/core.cljs
+[32mSuccessfully compiled "resources/public/game.js" in 0.513 seconds.[0m
+notifying browser that file changed:  /game/core.js
+[0mCompiling "resources/public/game.js" from ["src"]...
+[32mSuccessfully compiled "resources/public/game.js" in 0.495 seconds.[0m
+notifying browser that file changed:  /game/core.js
+[0mCompiling "resources/public/game.js" from ["src"]...
+[32mSuccessfully compiled "resources/public/game.js" in 0.504 seconds.[0m
+notifying browser that file changed:  /game/core.js
+[0mCompiling "resources/public/game.js" from ["src"]...
+[32mSuccessfully compiled "resources/public/game.js" in 0.201 seconds.[0m
+notifying browser that file changed:  /game/board.js
+[0mCompiling "resources/public/game.js" from ["src"]...
+[32mSuccessfully compiled "resources/public/game.js" in 0.191 seconds.[0m
+notifying browser that file changed:  resources/public/out/cljs_deps.js
+notifying browser that file changed:  /game/board.js
