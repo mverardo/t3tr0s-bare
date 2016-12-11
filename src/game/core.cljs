@@ -198,7 +198,8 @@
   (.html ($ "#score") (str "Score: " (:score @state)))
   (.html ($ "#level") (str "Level: " (:level @state)))
   (.html ($ "#lines") (str "Lines: " (:total-lines @state)))
-  (.html ($ "#board-density") (str "Board Density: " (->> @state :metrics :board-density (gstring/format "%.2f")))))
+  (.html ($ "#board-density") (str "Board Density: " (->> @state :metrics :board-density (gstring/format "%.2f"))))
+  (.html ($ "#tower-height") (str "Tower Height: " (->> @state :metrics :tower-height (gstring/format "%.2f")))))
 
 
 (defn update-points!
@@ -395,16 +396,27 @@
 
 (def metrics-chan (chan 1 (dedupe)))
 
+(defn filled-cell-count [row]
+  (->> row
+       (filter #(not= 0 %))
+       count))
+
 (defn collect-density [state]
-  (let [row-filled-cells   (fn [row] (->> row (filter #(not= 0 %)) count))
-        board-filled-cells (->> state :board (map row-filled-cells) (reduce +))
+  (let [board-filled-cells (->> state :board (map filled-cell-count) (reduce +))
         total-cells        (* (-> state :board-size :n-cols) (-> state :board-size :n-rows))]
     {:board-density (/ board-filled-cells total-cells)}))
 
+(defn collect-tower-height [{:keys [board board-size]}]
+  (let [rows-with-filled-cells (keep-indexed (fn [i row] (when (not= 0 (filled-cell-count row)) [i row])) board)
+        tower-height           (- (:n-rows board-size) (or (ffirst rows-with-filled-cells) (:n-rows board-size)))]
+    {:tower-height tower-height}))
+
+(def metric-collectors [collect-density collect-tower-height])
+
 (defn collect-metrics! [out-chan]
   (go-loop []
-    (put! metrics-chan (collect-density @state))
-    (<! (timeout 10))
+    (run! (fn [collector] (put! metrics-chan (collector @state))) metric-collectors)
+    (<! (timeout 30))
     (recur)))
 
 (defn update-metrics! [state metrics-chan]
