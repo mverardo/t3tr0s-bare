@@ -50,18 +50,18 @@
 (defn init-state!
   "Set the initial state of the game."
   []
-  (reset! state {:next-piece nil
-                 :piece nil
-                 :position nil
-                 :board empty-board
-                 :metrics empty-metrics
+  (reset! state {:next-piece  nil
+                 :piece       nil
+                 :position    nil
+                 :board       empty-board
+                 :metrics     empty-metrics
 
-                 :score 0
-                 :level 0
+                 :score       0
+                 :level       0
                  :level-lines 0
                  :total-lines 0
 
-                 :soft-drop false}))
+                 :soft-drop   false}))
 
 (def paused? (atom false))
 
@@ -386,7 +386,26 @@
     (.addEventListener js/window "keydown" key-down)
     (.addEventListener js/window "keyup" key-up)))
 
+;;------------------------------------------------------------
+;; Metrics collectors
+;;------------------------------------------------------------
 
+(def metrics-chan (chan 1 (dedupe)))
+
+(def collect-density (constantly {:board-density 1.123M}))
+
+(defn collect-metrics! [out-chan]
+  (go-loop []
+    (put! metrics-chan (collect-density @state))
+    (<! (timeout 10))
+    (recur)))
+
+(defn update-metrics! [state metrics-chan]
+  (go-loop [metric (<! metrics-chan)]
+    (swap! state (fn [state metric] (update state :metrics merge metric)) metric)
+    (display-points!)
+    (<! (timeout 10))
+    (recur (<! metrics-chan))))
 
 ;;------------------------------------------------------------
 ;; Entry Point
@@ -400,6 +419,8 @@
   (manage-piece-shift! move-left-chan -1)
   (manage-piece-shift! move-right-chan 1)
 
+  (collect-metrics! metrics-chan)
+  (update-metrics! state metrics-chan)
 
   (size-canvas! "game-canvas" empty-board cell-size rows-cutoff)
   (size-canvas! "next-canvas" (next-piece-board) cell-size)
