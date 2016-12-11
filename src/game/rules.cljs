@@ -9,11 +9,6 @@
     3 (* 300 level)
     4 (* 1200 level)))
 
-(defn level-up?
-  "Determine if we should level up given the current level lines cleared."
-  [level-lines]
-  (>= level-lines 10))
-
 ; Delayed auto-shift.  See: http://tetris.wikia.com/wiki/DAS
 ; Initial shift speed is the amount of time before a piece starts rapidly shifting.
 ; Shift speed is the amount of time in between each rapid shift.

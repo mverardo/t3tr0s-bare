@@ -28,7 +28,6 @@
                         next-piece-board
                         tower-height]]
     [game.rules :refer [get-points
-                        level-up?
                         grav-speed
                         initial-shift-speed
                         shift-speed]]
@@ -212,12 +211,6 @@
     ; update the score before a possible level-up
     (swap! state update-in [:score] + points)
 
-    (if (level-up? level-lines)
-      (do
-        (swap! state update-in [:level] inc)
-        (swap! state assoc :level-lines 0))
-      (swap! state assoc :level-lines level-lines))
-
     (swap! state update-in [:total-lines] + n))
 
 
@@ -255,6 +248,23 @@
         ; finally collapse
         (collapse-rows! rows)))))
 
+(defn state->offset [state]
+  (if (>= (-> state :metrics :tower-height) 10)
+    -1
+    1))
+
+(defn level-offset [state]
+  (let [raw-offset (state->offset state)
+        new-level  (+ (:level state) raw-offset)]
+    (if (>= new-level 0)
+      raw-offset
+      0)))
+
+(defn adapt-level! [state*]
+  (let [offset (level-offset @state*)]
+    (println offset)
+    (swap! state update-in [:level] (partial + offset))))
+
 (defn lock-piece!
   "Lock the current piece into the board."
   []
@@ -266,6 +276,8 @@
                        :piece nil
                        :soft-drop false) ; reset soft drop
     (stop-gravity!)
+
+    (adapt-level! state)
 
     ; If collapse routine returns a channel...
     ; then wait for it before spawning a new piece.
