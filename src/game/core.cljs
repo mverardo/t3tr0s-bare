@@ -197,9 +197,10 @@
   (.html ($ "#score") (str "Score: " (:score @state)))
   (.html ($ "#level") (str "Level: " (:level @state)))
   (.html ($ "#lines") (str "Lines: " (:total-lines @state)))
+  (.html ($ "#tower-height") (str "Tower Height: "   (->> @state :metrics :tower-height (gstring/format "%.2f"))))
   (.html ($ "#board-density") (str "Board Density: " (->> @state :metrics :board-density (gstring/format "%.2f"))))
-  (.html ($ "#tower-height") (str "Tower Height: " (->> @state :metrics :tower-height (gstring/format "%.2f"))))
-  (.html ($ "#tower-density") (str "Tower Density: " (->> @state :metrics :tower-density (gstring/format "%.2f")))))
+  (.html ($ "#tower-density") (str "Tower Density: " (->> @state :metrics :tower-density (gstring/format "%.2f"))))
+  (.html ($ "#density-ratio") (str "Density Ratio: " (->> @state :metrics :density-ratio (gstring/format "%.2f")))))
 
 
 (defn update-points!
@@ -249,21 +250,22 @@
         ; finally collapse
         (collapse-rows! rows)))))
 
-(defn state->offset [state]
-  (if (>= (-> state :metrics :tower-height) (/ (-> state :board-size :n-rows) 2))
-    -3
-    1))
+(defn state->offset [{:keys [metrics board-size]}]
+  (let [{:keys [tower-height tower-density]} metrics]
+    (if (>= (:tower-height metrics) (/ (:n-rows board-size) 2))
+      (- -1 (Math/round (* tower-height (- 1 tower-density))))
+      (+ 1 (Math/round (* (- (:n-rows board-size) tower-height) tower-density))))))
 
 (defn level-offset [state]
   (let [raw-offset (state->offset state)
         new-level  (+ (:level state) raw-offset)]
-    (if (>= new-level 0)
-      raw-offset
-      0)))
+    (println raw-offset)
+    (cond (> new-level 20) (- 20 (:level state))
+          (<= new-level 0) (- (:level state))
+          :else            raw-offset)))
 
 (defn adapt-level! [state*]
   (let [offset (level-offset @state*)]
-    (println offset)
     (swap! state update-in [:level] (partial + offset))))
 
 (defn lock-piece!
@@ -414,10 +416,10 @@
        (filter #(not= 0 %))
        count))
 
-(defn collect-density [state]
+(defn board-density [state]
   (let [board-filled-cells (->> state :board (map filled-cell-count) (reduce +))
         total-cells        (* (-> state :board-size :n-cols) (-> state :board-size :n-rows))]
-    {:board-density (/ board-filled-cells total-cells)}))
+    (/ board-filled-cells total-cells)))
 
 (defn tower-height [{:keys [board board-size]}]
   (let [rows-with-filled-cells (keep-indexed (fn [i row] (when (not= 0 (filled-cell-count row)) [i row])) board)]
@@ -435,15 +437,21 @@
       0
       (/ @tower-filled-cells tower-total-cells))))
 
-(defn collect-tower-density [state]
-  {:tower-density (tower-density state)})
+(defn collect-densities [state]
+  (let [board-density (board-density state)
+        tower-density (tower-density state)]
+    {:tower-density tower-density
+     :board-density board-density
+     :density-ratio (if (= 0 tower-density) 0.0M (/ board-density tower-density))}))
 
-(def metric-collectors [collect-density collect-tower-height collect-tower-density])
+(def metric-collectors
+  [collect-tower-height
+   collect-densities])
 
 (defn collect-metrics! [out-chan]
   (go-loop []
     (run! (fn [collector] (put! metrics-chan (collector @state))) metric-collectors)
-    (<! (timeout 50))
+    (<! (timeout 100))
     (recur)))
 
 (defn update-metrics! [state metrics-chan]
