@@ -249,8 +249,8 @@
         (collapse-rows! rows)))))
 
 (defn state->offset [state]
-  (if (>= (-> state :metrics :tower-height) 10)
-    -1
+  (if (>= (-> state :metrics :tower-height) (/ (-> state :board-size :n-rows) 2))
+    -3
     1))
 
 (defn level-offset [state]
