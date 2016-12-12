@@ -250,11 +250,18 @@
         ; finally collapse
         (collapse-rows! rows)))))
 
-(defn state->offset [{:keys [metrics board-size]}]
+(defn should-increase? [{:keys [metrics board-size]}]
+  (println "first" (<= (:tower-height metrics) (/ (:n-rows board-size) 2)))
+  (println "second" (:tower-density metrics))
+  (and (<= (:tower-height metrics) (/ (:n-rows board-size) 2))
+       (>= (:tower-density metrics) 0.40M)))
+
+(defn state->offset [{:keys [metrics board-size] :as state}]
   (let [{:keys [tower-height tower-density]} metrics]
-    (if (>= (:tower-height metrics) (/ (:n-rows board-size) 2))
-      (- -1 (Math/round (* tower-height (- 1 tower-density))))
-      (+ 1 (Math/round (* (- (:n-rows board-size) tower-height) tower-density))))))
+    (println (should-increase? state))
+    (if (should-increase? state)
+      (+ 1 (Math/round (* (/ (- (:n-rows board-size) tower-height) 3) tower-density)))
+      (- -1 (Math/round (* tower-height (- 1 tower-density)))))))
 
 (defn level-offset [state]
   (let [raw-offset (state->offset state)
