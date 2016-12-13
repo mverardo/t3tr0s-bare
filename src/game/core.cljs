@@ -124,7 +124,7 @@
 (defn make-redraw-chan
   "Create a channel that receives a value everytime a redraw is requested."
   []
-  (let [redraw-chan (chan)
+  (let [redraw-chan  (chan)
         request-anim #(.requestAnimationFrame js/window %)]
     (letfn [(trigger-redraw []
               (put! redraw-chan 1)
@@ -146,7 +146,7 @@
   (let [redraw-chan (make-redraw-chan)]
     (go-loop [board nil]
       (<! redraw-chan)
-      (let [new-board (drawable-board)
+      (let [new-board  (drawable-board)
             next-piece (:next-piece @state)]
         (when (not= board new-board)
           (draw-board! "game-canvas" new-board cell-size rows-cutoff)
@@ -169,23 +169,23 @@
   "Spawns the given piece at the starting position."
   [piece]
   (swap! state assoc :piece piece
-                     :position start-position)
+         :position start-position)
 
   (go-go-gravity!))
 
 (defn try-spawn-piece!
   "Checks if new piece can be written to starting position."
   []
-  (let [piece (or (:next-piece @state) (get-rand-piece))
+  (let [piece      (or (:next-piece @state) (get-rand-piece))
         next-piece (get-rand-diff-piece piece)
         [x y] start-position
-        board (:board @state)]
+        board      (:board @state)]
 
     (swap! state assoc :next-piece next-piece)
 
     (if (piece-fits? piece x y board)
       (spawn-piece! piece)
-      (go ;exitable
+      (go                                                   ;exitable
         ; Show piece that we attempted to spawn, drawn behind the other pieces.
         ; Then pause before kicking off gameover animation.
         (swap! state update-in [:board] #(write-piece-behind-board piece x y %))
@@ -198,14 +198,15 @@
   (.html ($ "#level") (str "Level: " (:level @state)))
   (.html ($ "#lines") (str "Lines: " (:total-lines @state)))
   (.html ($ "#board-density") (str "Board Density: " (->> @state :metrics :board-density (gstring/format "%.2f"))))
-  (.html ($ "#tower-height") (str "Tower Height: " (->> @state :metrics :tower-height (gstring/format "%.2f")))))
+  (.html ($ "#tower-height") (str "Tower Height: " (->> @state :metrics :tower-height (gstring/format "%.2f"))))
+  (.html ($ "#tower-density") (str "Tower Density: " (->> @state :metrics :tower-density (gstring/format "%.2f")))))
 
 
 (defn update-points!
   [rows-cleared]
-  (let [n rows-cleared
-        level (:level @state)
-        points (get-points n (inc level))
+  (let [n           rows-cleared
+        level       (:level @state)
+        points      (get-points n (inc level))
         level-lines (+ n (:level-lines @state))]
 
     ; update the score before a possible level-up
@@ -219,7 +220,7 @@
 (defn collapse-rows!
   "Collapse the given row indices."
   [rows]
-  (let [n (count rows)
+  (let [n     (count rows)
         board (collapse-rows rows (:board @state))]
     (swap! state assoc :board board)
     (update-points! n)))
@@ -227,13 +228,13 @@
 (defn go-go-collapse!
   "Starts the collapse animation if we need to, returning nil or the animation channel."
   []
-  (let [board (:board @state)
-        rows (get-filled-row-indices board)
+  (let [board         (:board @state)
+        rows          (get-filled-row-indices board)
         flashed-board (highlight-rows rows board)
         cleared-board (clear-rows rows board)]
 
     (when-not (zero? (count rows))
-      (go ; no need to exit this (just let it finish)
+      (go                                                   ; no need to exit this (just let it finish)
         ; blink n times
         (doseq [i (range 3)]
           (swap! state assoc :board flashed-board)
@@ -269,12 +270,12 @@
   "Lock the current piece into the board."
   []
   (let [[x y] (:position @state)
-        piece (:piece @state)
-        board (:board @state)
+        piece     (:piece @state)
+        board     (:board @state)
         new-board (write-piece-to-board piece x y board)]
     (swap! state assoc :board new-board
-                       :piece nil
-                       :soft-drop false) ; reset soft drop
+           :piece nil
+           :soft-drop false)                                ; reset soft drop
     (stop-gravity!)
 
     (adapt-level! state)
@@ -294,7 +295,7 @@
   (let [piece (:piece @state)
         [x y] (:position @state)
         board (:board @state)
-        ny (inc y)]
+        ny    (inc y)]
     (if (piece-fits? piece x ny board)
       (swap! state assoc-in [:position 1] ny)
       (lock-piece!))))
@@ -338,8 +339,8 @@
   (let [[x y] (:position @state)
         piece (:piece @state)
         board (:board @state)
-        nx (+ dx x)
-        ny (+ dy y)]
+        nx    (+ dx x)
+        ny    (+ dy y)]
     (if (piece-fits? piece nx ny board)
       (swap! state assoc :position [nx ny]))))
 
@@ -347,8 +348,8 @@
   "Try rotating the current piece."
   []
   (let [[x y] (:position @state)
-        piece (:piece @state)
-        board (:board @state)
+        piece     (:piece @state)
+        board     (:board @state)
         new-piece (rotate-piece piece)]
     (if (piece-fits? new-piece x y board)
       (swap! state assoc :piece new-piece))))
@@ -359,7 +360,7 @@
   (let [[x y] (:position @state)
         piece (:piece @state)
         board (:board @state)
-        ny (get-drop-pos piece x y board)]
+        ny    (get-drop-pos piece x y board)]
     (swap! state assoc :position [x ny])
     (lock-piece!)))
 
@@ -381,21 +382,21 @@
                      nil)
                    (when (:piece @state)
                      (case (key-name e)
-                       :down  (put! move-down-chan true)
-                       :left  (put! move-left-chan true)
+                       :down (put! move-down-chan true)
+                       :left (put! move-left-chan true)
                        :right (put! move-right-chan true)
                        :space (hard-drop!)
-                       :up    (try-rotate!)
+                       :up (try-rotate!)
                        nil))
                    (when (#{:down :left :right :space :up} (key-name e))
                      (.preventDefault e)))
-        key-up (fn [e]
-                 (case (key-name e)
-                   :down  (put! move-down-chan false)
-                   :left  (put! move-left-chan false)
-                   :right (put! move-right-chan false)
-                   :p (toggle-pause-game!)
-                   nil))]
+        key-up   (fn [e]
+                   (case (key-name e)
+                     :down (put! move-down-chan false)
+                     :left (put! move-left-chan false)
+                     :right (put! move-right-chan false)
+                     :p (toggle-pause-game!)
+                     nil))]
 
 
     ; Add key events
@@ -418,17 +419,31 @@
         total-cells        (* (-> state :board-size :n-cols) (-> state :board-size :n-rows))]
     {:board-density (/ board-filled-cells total-cells)}))
 
-(defn collect-tower-height [{:keys [board board-size]}]
-  (let [rows-with-filled-cells (keep-indexed (fn [i row] (when (not= 0 (filled-cell-count row)) [i row])) board)
-        tower-height           (- (:n-rows board-size) (or (ffirst rows-with-filled-cells) (:n-rows board-size)))]
-    {:tower-height tower-height}))
+(defn tower-height [{:keys [board board-size]}]
+  (let [rows-with-filled-cells (keep-indexed (fn [i row] (when (not= 0 (filled-cell-count row)) [i row])) board)]
+    (- (:n-rows board-size) (or (ffirst rows-with-filled-cells) (:n-rows board-size)))))
 
-(def metric-collectors [collect-density collect-tower-height])
+(defn collect-tower-height [state]
+  {:tower-height (tower-height state)})
+
+(defn tower-density [{:keys [board board-size] :as state}]
+  (let [tower-height       (tower-height state)
+        tower-total-cells  (* (-> board-size :n-cols) tower-height)
+        tower-rows         (->> board (drop-while (fn [row] (= 0 (filled-cell-count row)))))
+        tower-filled-cells (delay (->> tower-rows (map filled-cell-count) (reduce +)))]
+    (if (empty? tower-rows)
+      0
+      (/ @tower-filled-cells tower-total-cells))))
+
+(defn collect-tower-density [state]
+  {:tower-density (tower-density state)})
+
+(def metric-collectors [collect-density collect-tower-height collect-tower-density])
 
 (defn collect-metrics! [out-chan]
   (go-loop []
     (run! (fn [collector] (put! metrics-chan (collector @state))) metric-collectors)
-    (<! (timeout 30))
+    (<! (timeout 50))
     (recur)))
 
 (defn update-metrics! [state metrics-chan]
