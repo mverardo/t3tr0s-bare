@@ -165,7 +165,8 @@
 (def empty-metrics {:tower-height  0.0M
                     :board-density 0.0M
                     :tower-density 0.0M
-                    :density-ratio 0.0M})
+                    :density-ratio 0.0M
+                    :hard-drops    0})
 
 ; The starting position of all pieces.
 (def start-position [4 2])
