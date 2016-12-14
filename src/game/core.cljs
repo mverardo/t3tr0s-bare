@@ -253,7 +253,7 @@
 
 (defn state->level [{:keys [board-size metrics]}]
   (let [sky-size (- (:n-rows board-size) (:tower-height metrics))]
-    (Math/round (* sky-size (:tower-density metrics)))))
+    (Math/round (+ (* 2 (:hard-drops metrics)) (* sky-size (:tower-density metrics))))))
 
 (defn adapt-level! [state*]
   (let [new-level (state->level @state*)]
