@@ -34,7 +34,7 @@
     [game.paint :refer [size-canvas!
                         cell-size
                         draw-board!]]
-    [cljs.core.async :refer [close! put! chan <! timeout unique alts!]]))
+    [cljs.core.async :as async :refer [close! put! chan <! timeout unique alts!]]))
 
 (enable-console-print!)
 
@@ -200,7 +200,8 @@
   (.html ($ "#tower-height") (str "Tower Height: "   (->> @state :metrics :tower-height (gstring/format "%.2f"))))
   (.html ($ "#board-density") (str "Board Density: " (->> @state :metrics :board-density (gstring/format "%.2f"))))
   (.html ($ "#tower-density") (str "Tower Density: " (->> @state :metrics :tower-density (gstring/format "%.2f"))))
-  (.html ($ "#density-ratio") (str "Density Ratio: " (->> @state :metrics :density-ratio (gstring/format "%.2f")))))
+  (.html ($ "#density-ratio") (str "Density Ratio: " (->> @state :metrics :density-ratio (gstring/format "%.2f"))))
+  (.html ($ "#hard-drops") (str "Hard Drops in the last second: " (->> @state :metrics :hard-drops))))
 
 
 (defn update-points!
@@ -346,6 +347,8 @@
     (if (piece-fits? new-piece x y board)
       (swap! state assoc :piece new-piece))))
 
+(def hard-drop-chan (chan 50))
+
 (defn hard-drop!
   "Hard drop the current piece."
   []
@@ -354,6 +357,7 @@
         board (:board @state)
         ny    (get-drop-pos piece x y board)]
     (swap! state assoc :position [x ny])
+    (go (put! hard-drop-chan 1))
     (lock-piece!)))
 
 (def key-names {
@@ -443,7 +447,7 @@
 
 (defn collect-metrics! [out-chan]
   (go-loop []
-    (run! (fn [collector] (put! metrics-chan (collector @state))) metric-collectors)
+    (run! (fn [collector] (put! out-chan (collector @state))) metric-collectors)
     (<! (timeout 100))
     (recur)))
 
@@ -451,8 +455,21 @@
   (go-loop [metric (<! metrics-chan)]
     (swap! state (fn [state metric] (update state :metrics merge metric)) metric)
     (display-points!)
-    (<! (timeout 10))
     (recur (<! metrics-chan))))
+
+; There should be a better, non-imperative way of doing this, but I just couldn't find it right now.
+; If I can find a way to merge channels, but closing when any of the merged channels close, I can use (async/reduce)
+(defn collect-hard-drops! [hard-drops-chan metrics-chan]
+  (go
+    (loop [hard-drop-count (atom 0)]
+      (let [millis 1000]
+        (do
+          (loop [[message chan] (alts! [hard-drops-chan (timeout millis)])]
+            (when (= chan hard-drops-chan)
+              (do (swap! hard-drop-count inc)
+                  (recur (alts! [hard-drops-chan (timeout millis)])))))
+          (put! metrics-chan {:hard-drops @hard-drop-count})
+          (recur (atom 0)))))))
 
 ;;------------------------------------------------------------
 ;; Entry Point
@@ -467,6 +484,7 @@
   (manage-piece-shift! move-right-chan 1)
 
   (collect-metrics! metrics-chan)
+  (collect-hard-drops! hard-drop-chan metrics-chan)
   (update-metrics! state metrics-chan)
 
   (size-canvas! "game-canvas" empty-board cell-size rows-cutoff)
