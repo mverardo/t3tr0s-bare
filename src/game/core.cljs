@@ -250,26 +250,13 @@
         ; finally collapse
         (collapse-rows! rows)))))
 
-(defn should-increase? [{:keys [metrics board-size]}]
-  (and (<= (:tower-height metrics) (/ (:n-rows board-size) 2))
-       (>= (:tower-density metrics) 0.40M)))
-
-(defn state->offset [{:keys [metrics board-size] :as state}]
-  (let [{:keys [tower-height tower-density]} metrics]
-    (if (should-increase? state)
-      (+ 1 (Math/round (* (/ (- (:n-rows board-size) tower-height) 3) tower-density)))
-      (- -1 (Math/round (* tower-height (- 1 tower-density)))))))
-
-(defn level-offset [state]
-  (let [raw-offset (state->offset state)
-        new-level  (+ (:level state) raw-offset)]
-    (cond (> new-level 20) (- 20 (:level state))
-          (<= new-level 0) (- (:level state))
-          :else            raw-offset)))
+(defn state->level [{:keys [board-size metrics]}]
+  (let [sky-size (- (:n-rows board-size) (:tower-height metrics))]
+    (Math/round (* sky-size (:tower-density metrics)))))
 
 (defn adapt-level! [state*]
-  (let [offset (level-offset @state*)]
-    (swap! state update-in [:level] (partial + offset))))
+  (let [new-level (state->level @state*)]
+    (swap! state update-in [:level] (constantly new-level))))
 
 (defn lock-piece!
   "Lock the current piece into the board."
